@@ -1,0 +1,66 @@
+open util/ordering[Node]
+
+abstract sig Status {}
+one sig Passive, Active extends Status {}
+
+abstract sig Color {}
+one sig White, Black extends Color {}
+
+sig Node {
+	next_node : one Node,
+	var status : one Status,
+	var node_color : one Color
+}
+
+var one sig Token {
+	var position : one Node,
+	var token_color : one Color
+}
+
+fun blackNodes : set Node {
+	{ node : Node | node.node_color = Black}
+}
+
+fun whiteNodes : set Node {
+	{ node : Node | node.node_color = White}
+}
+
+fun blackTokens : set Token {
+	{ token : Token | token.token_color = Black}
+}
+
+fun whiteTokens : set Token {
+	{ token : Token | token.token_color = White}
+}
+
+fact Init {
+	// Setup next_node to form a ring
+	all node : Node - max[Node] | node.next_node = min[nexts[node]]
+	max[Node].next_node = min[Node]
+
+}
+
+//TODO
+
+//TODO
+pred passToken {
+}
+
+//TODO
+pred sendMessage {
+}
+
+pred nop {
+	status' = status
+	node_color' = node_color
+	position' = position
+	token_color' = token_color
+}
+
+run {
+} for 3
+
+// Checks if the nodes are always disposed in a ring order
+check alwaysRing {
+	always all node : Node | one node.next_node and node.*next_node = Node
+} for 5

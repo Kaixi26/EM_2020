@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<alloy>
+
+<view nodetheme="Martha" edgetheme="Martha">
+
+<defaultnode/>
+
+<defaultedge/>
+
+<node>
+   <type name="Active"/>
+   <type name="Black"/>
+   <type name="Int"/>
+   <type name="Node"/>
+   <type name="Passive"/>
+   <type name="String"/>
+   <type name="Token"/>
+   <type name="univ"/>
+   <type name="White"/>
+   <type name="ordering/Ord"/>
+   <type name="seq/Int"/>
+</node>
+
+<node showlabel="no" color="Black">
+   <set name="$blackTokens" type="Token"/>
+</node>
+
+<node showlabel="no" color="White">
+   <set name="$whiteTokens" type="Token"/>
+</node>
+
+<node showlabel="no" style="Bold" shape="Circle" color="White">
+   <set name="$whiteNodes" type="Node"/>
+</node>
+
+<node visible="no">
+   <type name="Color"/>
+   <type name="Status"/>
+</node>
+
+<node visible="yes" showlabel="no" style="Bold" shape="Circle" color="Gray">
+   <set name="$blackNodes" type="Node"/>
+</node>
+
+<edge style="inherit">
+   <relation name="node_color"> <type name="Node"/> <type name="Color"/> </relation>
+   <relation name="position"> <type name="Token"/> <type name="Node"/> </relation>
+</edge>
+
+<edge style="inherit" attribute="no">
+   <relation name="token_color"> <type name="Token"/> <type name="Color"/> </relation>
+</edge>
+
+<edge style="inherit" visible="no" attribute="yes">
+   <relation name="status"> <type name="Node"/> <type name="Status"/> </relation>
+</edge>
+
+</view>
+
+</alloy>
