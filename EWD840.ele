@@ -40,9 +40,17 @@ fun transition : set Transition {
 	{ transition : STARTPROBE | startProbe } +
 	{ transition : NOP | nop } +
 	{ transition : PASSTOKEN | passToken } +
-	{ transition : SPORADICPASSIVE | sporadicPassive } +
+	{ transition : SPORADICPASSIVE | one node : Node | sporadicPassive[node] } +
 	{ transition : SENDMESSAGE | sendMessage }
 }
+
+pred algorithmEnded {
+	Token.position = min[Node]
+	Token.token_color = White
+	min[Node].status = Passive
+}
+
+/****/
 
 // Initial state
 fact Init {
@@ -59,15 +67,28 @@ fact Transitions {
 		nop
 		or startProbe
 		or passToken
-		or sporadicPassive
+		or one node : Node | sporadicPassive[node]
 		or sendMessage
 	}
 }
 
-// Machine number one sends probe
-pred startProbe {
+fact fairness {
+	fairnessStartProbe
+	fairnessPassToken
+	fairnessSporadicPassive
+}
+
+/****/
+
+pred startProbePreCondition {
 	no Token
 	or (Token.position = min[Node] and Token.token_color = Black)
+	min[Node].status = Passive
+}
+
+// Machine number one sends probe
+pred startProbe {
+	startProbePreCondition	
 
 	// Rule 4.
 	one Token'
@@ -78,22 +99,41 @@ pred startProbe {
 	status' = status
 }
 
-// Current token holder machine passes token if passive
-pred passToken {
+pred fairnessStartProbe {
+	(eventually always startProbePreCondition) => (always eventually startProbe)
+	always ((always startProbePreCondition) => (eventually startProbe))
+}
+
+/****/
+
+pred passTokenPreCondition {
 	some Token
 	Token.position != min[Node]
 	Token.position.status = Passive // Rule 0.
+}
+
+// Current token holder machine passes token if passive
+pred passToken {
+	passTokenPreCondition
 
 // Rule 2.
 	position' = (Token -> Token.position.next_node)
 	Token.position.node_color = Black 
 		=> (Token.token_color)' = Black
 		else token_color' = token_color
+// Rule 4.
+	node_color' = node_color ++ (Token.position -> White)
 
 	status' = status
-	node_color' = node_color
 	Token' = Token
 }
+
+pred fairnessPassToken {
+	(eventually always passTokenPreCondition) => (always eventually passToken)
+	always ((always passTokenPreCondition) => (eventually passToken))
+}
+
+/****/
 
 // Sends a message from one machine to the other
 pred sendMessage {
@@ -101,7 +141,9 @@ pred sendMessage {
 		sender.status = Active		
 
 		(sender.node_color)' = Black // Rule 1'.
-		receiver in prevs[sender] => (receiver.node_color)' = Black // Rule 4.
+		receiver in prevs[sender] 
+			=> (receiver.node_color)' = Black // Rule 4.
+			else (receiver.node_color)' = receiver.node_color
 		all node : Node - sender - receiver | (node.node_color)' = node.node_color
 		status' = status ++ (receiver -> Active)
 		
@@ -112,16 +154,34 @@ pred sendMessage {
 	}
 }
 
+/****/
+
+pred sporadicPassivePreCondition[node : Node] {
+	node.status = Active
+}
+
 // A node turns passive
-pred sporadicPassive {
+pred sporadicPassive[node : Node] {
+	sporadicPassivePreCondition[node]
 	
-	one node : Node | node.status = Active and status' = status ++ (node -> Passive)
+	status' = status ++ (node -> Passive)
 
 	node_color' = node_color
 	position' = position
 	token_color' = token_color
 	Token' = Token
 }
+
+pred fairnessSporadicPassive {
+	always all node : Node {
+		(eventually always sporadicPassivePreCondition[node])
+			=> (always eventually sporadicPassive[node])
+		always ((always sporadicPassivePreCondition[node])
+			=> (eventually sporadicPassive[node]))
+		}
+}
+
+/****/
 
 pred nop {
 	status' = status
@@ -131,10 +191,36 @@ pred nop {
 	Token' = Token
 }
 
-run {
-} for 3
+/****/
 
 // Checks if the nodes are always disposed in a ring order
-check alwaysRing {
+assert alwaysRing {
 	always all node : Node | one node.next_node and node.*next_node = Node
-} for 5
+}
+
+// Checks if the system is stable after termination has been detected
+assert stability {
+	always (algorithmEnded => always algorithmEnded)
+	always (algorithmEnded => Node.status = Passive)
+	always (algorithmEnded => nop)
+}
+
+// Check if the algorithm will always end
+assert liveness {
+	eventually algorithmEnded
+}
+
+
+/****/
+
+check alwaysRing for 3 but 15 steps
+
+check stability for 3 but 15 steps
+
+check liveness for 3 but 15 steps
+
+/****/
+
+run {
+
+}
