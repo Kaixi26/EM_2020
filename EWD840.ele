@@ -1,5 +1,8 @@
 open util/ordering[Node]
 
+abstract sig Transition {}
+one sig NOP, STARTPROBE, PASSTOKEN, SPORADICPASSIVE, SENDMESSAGE extends Transition {}
+
 abstract sig Status {}
 one sig Passive, Active extends Status {}
 
@@ -12,42 +15,112 @@ sig Node {
 	var node_color : one Color
 }
 
-var one sig Token {
+var lone sig Token {
 	var position : one Node,
 	var token_color : one Color
 }
 
 fun blackNodes : set Node {
-	{ node : Node | node.node_color = Black}
+	{ node : Node | node.node_color = Black }
 }
 
 fun whiteNodes : set Node {
-	{ node : Node | node.node_color = White}
+	{ node : Node | node.node_color = White }
 }
 
 fun blackTokens : set Token {
-	{ token : Token | token.token_color = Black}
+	{ token : Token | token.token_color = Black }
 }
 
 fun whiteTokens : set Token {
-	{ token : Token | token.token_color = White}
+	{ token : Token | token.token_color = White }
 }
 
+fun transition : set Transition {
+	{ transition : STARTPROBE | startProbe } +
+	{ transition : NOP | nop } +
+	{ transition : PASSTOKEN | passToken } +
+	{ transition : SPORADICPASSIVE | sporadicPassive } +
+	{ transition : SENDMESSAGE | sendMessage }
+}
+
+// Initial state
 fact Init {
 	// Setup next_node to form a ring
-	all node : Node - max[Node] | node.next_node = min[nexts[node]]
-	max[Node].next_node = min[Node]
+	all node : Node - min[Node] | node.next_node = max[prevs[node]]
+	min[Node].next_node = max[Node]
 
+	no Token
 }
 
-//TODO
+// Possible transitions of the system
+fact Transitions {
+	always {
+		nop
+		or startProbe
+		or passToken
+		or sporadicPassive
+		or sendMessage
+	}
+}
 
-//TODO
+// Machine number one sends probe
+pred startProbe {
+	no Token
+	or (Token.position = min[Node] and Token.token_color = Black)
+
+	// Rule 4.
+	one Token'
+	(Token.token_color)' = White
+	(Token.position)' = min[Node].next_node
+	node_color' = node_color ++ (min[Node] -> White)
+
+	status' = status
+}
+
+// Current token holder machine passes token if passive
 pred passToken {
+	some Token
+	Token.position != min[Node]
+	Token.position.status = Passive // Rule 0.
+
+// Rule 2.
+	position' = (Token -> Token.position.next_node)
+	Token.position.node_color = Black 
+		=> (Token.token_color)' = Black
+		else token_color' = token_color
+
+	status' = status
+	node_color' = node_color
+	Token' = Token
 }
 
-//TODO
+// Sends a message from one machine to the other
 pred sendMessage {
+	one disj sender, receiver : Node {
+		sender.status = Active		
+
+		(sender.node_color)' = Black // Rule 1'.
+		receiver in prevs[sender] => (receiver.node_color)' = Black // Rule 4.
+		all node : Node - sender - receiver | (node.node_color)' = node.node_color
+		status' = status ++ (receiver -> Active)
+		
+		all node : Node - sender - receiver | (node.node_color)' = node.node_color
+		position' = position
+		token_color' = token_color
+		Token' = Token
+	}
+}
+
+// A node turns passive
+pred sporadicPassive {
+	
+	one node : Node | node.status = Active and status' = status ++ (node -> Passive)
+
+	node_color' = node_color
+	position' = position
+	token_color' = token_color
+	Token' = Token
 }
 
 pred nop {
@@ -55,6 +128,7 @@ pred nop {
 	node_color' = node_color
 	position' = position
 	token_color' = token_color
+	Token' = Token
 }
 
 run {

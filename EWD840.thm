@@ -14,7 +14,7 @@
    <type name="Node"/>
    <type name="Passive"/>
    <type name="String"/>
-   <type name="Token"/>
+   <type name="Transition"/>
    <type name="univ"/>
    <type name="White"/>
    <type name="ordering/Ord"/>
@@ -35,7 +35,20 @@
 
 <node visible="no">
    <type name="Color"/>
+   <type name="NOP"/>
+   <type name="PASSTOKEN"/>
+   <type name="SENDMESSAGE"/>
+   <type name="SPORADICPASSIVE"/>
+   <type name="STARTPROBE"/>
    <type name="Status"/>
+</node>
+
+<node visible="yes">
+   <type name="Token"/>
+</node>
+
+<node visible="yes" showlabel="no" shape="Hexagon">
+   <set name="$transition" type="Transition"/>
 </node>
 
 <node visible="yes" showlabel="no" style="Bold" shape="Circle" color="Gray">
