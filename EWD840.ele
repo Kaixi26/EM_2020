@@ -40,7 +40,7 @@ fun transition : set Transition {
 	{ transition : STARTPROBE | startProbe } +
 	{ transition : NOP | nop } +
 	{ transition : PASSTOKEN | passToken } +
-	{ transition : SPORADICPASSIVE | one node : Node | sporadicPassive[node] } +
+	{ transition : SPORADICPASSIVE | some node : Node | sporadicPassive[node] } +
 	{ transition : SENDMESSAGE | sendMessage }
 }
 
@@ -67,10 +67,11 @@ fact Transitions {
 		nop
 		or startProbe
 		or passToken
-		or one node : Node | sporadicPassive[node]
+		or some node : Node | sporadicPassive[node]
 		or sendMessage
 	}
 }
+
 
 fact fairness {
 	fairnessStartProbe
@@ -137,9 +138,9 @@ pred fairnessPassToken {
 
 // Sends a message from one machine to the other
 pred sendMessage {
-	one disj sender, receiver : Node {
-		sender.status = Active		
-
+	some sender, receiver: Node {
+		sender.status = Active
+	
 		(sender.node_color)' = Black // Rule 1'.
 		receiver in prevs[sender] 
 			=> (receiver.node_color)' = Black // Rule 4.
@@ -222,5 +223,6 @@ check liveness for 3 but 15 steps
 /****/
 
 run {
-
-}
+	eventually (sendMessage and (not nop))
+	eventually algorithmEnded
+} for 3 but 15 steps
