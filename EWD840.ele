@@ -77,7 +77,7 @@ fact fairness {
 	fairnessStartProbe
 	fairnessPassToken
 	fairnessSporadicPassive
-	//eventually (always not sendMessage)
+	eventually (always not sendMessage)
 }
 
 /****/
@@ -215,15 +215,40 @@ assert liveness {
 
 /****/
 
-check alwaysRing for 3 but 15 steps
+check alwaysRing for 4 but 15 steps
 
-check stability for 3 but 15 steps
+check stability for 4 but 15 steps
 
-check liveness for 3 but 15 steps
+check liveness for 4 but 15 steps
 
 /****/
 
-run {
+// Instance where message is sent
+run withMessage {
 	eventually (sendMessage and (not nop))
-	eventually algorithmEnded
-} for 3 but 15 steps
+} for 4 but 15 steps
+
+// The token makes multiple trips around nodes
+run multipleProbes {
+	eventually (Token.position = min[Node] and Token.token_color = Black)
+} for 4 but 15 steps
+
+// The token makes only a trip around nodes
+run oneProbe {
+	always (Token.token_color != Black)
+} for 4 but 15 steps
+
+// All nodes start as active
+run allActive {
+	Node.status = Active
+} for 4 but 15 steps
+
+// The system only uses nop if there are no other possibilities
+// (apart from sending messages)
+run noNop {
+	nop => {
+		not startProbePreCondition
+		not passTokenPreCondition
+		not some node : Node | sporadicPassivePreCondition[node]
+	}
+} for 4 but 15 steps
